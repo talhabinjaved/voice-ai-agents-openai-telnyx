@@ -19,24 +19,16 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-TELNYX_API_KEY = os.getenv("TELNYX_API_KEY")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-PUBLIC_DOMAIN = os.getenv("DOMAIN")
-
-# Voice & prompting
-AGENT_VOICE = os.getenv("AGENT_VOICE", "marin")  # alloy|marin|...
-AGENT_INSTRUCTIONS = os.getenv(
-    "AGENT_INSTRUCTIONS",
-    "You are a helpful voice assistant. Greet warmly, then help succinctly. "
-    "Keep responses concise but informative. Be friendly and professional."
-)
-AGENT_GREETING = os.getenv(
-    "AGENT_GREETING",
-    "Hi! Thanks for calling. How can I help you today?"
+from .agent_config import (
+    TELNYX_API_KEY,
+    OPENAI_API_KEY,
+    PUBLIC_DOMAIN,
+    AGENT_VOICE,
+    AGENT_INSTRUCTIONS,
+    AGENT_GREETING,
 )
 
-if not TELNYX_API_KEY or not PUBLIC_DOMAIN or not OPENAI_API_KEY:
-    raise RuntimeError("Missing required env vars: TELNYX_API_KEY, OPENAI_API_KEY, DOMAIN")
+
 
 # -----------------------------
 # FastAPI app
@@ -144,26 +136,21 @@ async def telnyx_media(ws: WebSocket):
             "session": {
                 "type": "realtime",
                 "model": "gpt-realtime",
-                # lock output to audio; add "text" here if you also want text deltas
                 "output_modalities": ["audio"],
                 "audio": {
                     "input": {
-                        # Telnyx is sending PCMU frames; configure model to expect PCMU
                         "format": {"type": "audio/pcmu"},
                         "turn_detection": {
                             "type": "semantic_vad",
-                            # Let the server auto-create a response when the user stops speaking
-                            "create_response": True
+                            "eagerness":"auto"
                         },
                     },
                     "output": {
-                        # We will forward these chunks directly back to Telnyx
                         "format": {"type": "audio/pcmu"},
                         "voice": AGENT_VOICE,
                     },
                 },
                 "instructions": AGENT_INSTRUCTIONS,
-                # tools & tool_choice can be added here as needed
             },
         }
 
@@ -179,12 +166,9 @@ async def telnyx_media(ws: WebSocket):
         greeting_event = {
             "type": "response.create",
             "response": {
-                # use session defaults but we can be explicit:
                 "output_modalities": ["audio"],
-                # Empty input array = ignore prior conversation context
                 "input": [],
-                # Say this as the first line
-                "instructions": AGENT_GREETING,
+                "instructions": f"Say exactly this greeting: {AGENT_GREETING}",
             },
         }
         await openai_ws.send(json.dumps(greeting_event))
