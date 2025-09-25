@@ -42,45 +42,48 @@ Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
 ### Installation
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/yourusername/voice-ai-agents-openai-telnyx.git
    cd voice-ai-agents-openai-telnyx
    ```
 
 2. **Install dependencies**
+
    ```bash
    pip install -r requirements.txt
    ```
 
 3. **Environment Configuration**
-   
+
    Create a `.env` file in the project root:
+
    ```env
    # Required Configuration
    TELNYX_API_KEY=your_telnyx_api_key_here
    OPENAI_API_KEY=your_openai_api_key_here
    DOMAIN=your-domain.com  # or ngrok URL like abc123.ngrok.io
-   
+
    # Optional Voice & AI Configuration
    AGENT_VOICE=marin  # Options: alloy, echo, fable, onyx, nova, shimmer, marin
    AGENT_INSTRUCTIONS=You are a helpful voice assistant for Origen. Be friendly and professional.
    AGENT_GREETING=Hi! You've reached Origen. I'm your virtual assistant—how can I help today?
-   
+
    # Department Transfer Configuration (Optional)
    SALES_SIP_URI=sip:sales@your-domain.com
-   SALES_DIVERSION_HEADER=sip:sales@your-domain.com
-   
+   SALES_P_Called_Party_ID_HEADER=sip:sales@your-domain.com
+
    SUPPORT_SIP_URI=sip:support@your-domain.com
-   SUPPORT_DIVERSION_HEADER=sip:support@your-domain.com
-   
+   SUPPORT_P_Called_Party_ID_HEADER=sip:support@your-domain.com
+
    BILLING_SIP_URI=sip:billing@your-domain.com
-   BILLING_DIVERSION_HEADER=sip:billing@your-domain.com
-   
+   BILLING_P_Called_Party_ID_HEADER=sip:billing@your-domain.com
+
    TECHNICAL_SIP_URI=sip:tech@your-domain.com
-   TECHNICAL_DIVERSION_HEADER=sip:tech@your-domain.com
-   
+   TECHNICAL_P_Called_Party_ID_HEADER=sip:tech@your-domain.com
+
    MANAGEMENT_SIP_URI=sip:manager@your-domain.com
-   MANAGEMENT_DIVERSION_HEADER=sip:manager@your-domain.com
+   MANAGEMENT_P_Called_Party_ID_HEADER=sip:manager@your-domain.com
    ```
 
 4. **Run the application**
@@ -93,19 +96,21 @@ Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
 The system includes intelligent function tools that enable the AI to manage calls effectively:
 
 ### 1. End Call (`end_call`)
+
 - **Purpose**: Terminates the current phone call gracefully
 - **Triggers**: When caller says goodbye, conversation is complete, or escalation needed
-- **Parameters**: 
+- **Parameters**:
   - `reason`: Why the call is ending (`conversation_complete`, `caller_request`, `escalation_needed`)
-- **Example**: "Thank you for calling! Have a wonderful day!" → *Call ends*
+- **Example**: "Thank you for calling! Have a wonderful day!" → _Call ends_
 
 ### 2. Transfer Call (`transfer_call`)
+
 - **Purpose**: Routes calls to appropriate departments
 - **Triggers**: When caller needs specialized assistance
 - **Parameters**:
   - `department`: Target department (dynamically configured)
   - `reason`: Explanation for the transfer
-- **Example**: "I'll transfer you to our billing department now" → *Call transfers*
+- **Example**: "I'll transfer you to our billing department now" → _Call transfers_
 
 ### Conditional Function Loading
 
@@ -120,20 +125,21 @@ The system includes intelligent function tools that enable the AI to manage call
 Configure each department with SIP URI and custom headers:
 
 ```env
-# Department Format: {DEPARTMENT}_SIP_URI and {DEPARTMENT}_DIVERSION_HEADER
+# Department Format: {DEPARTMENT}_SIP_URI and {DEPARTMENT}_P_Called_Party_ID_HEADER
 SALES_SIP_URI=sip:sales@your-pbx.com
-SALES_DIVERSION_HEADER=sip:400@your-pbx.com
+SALES_P_Called_Party_ID_HEADER=sip:400@your-pbx.com
 
 SUPPORT_SIP_URI=sip:support@your-pbx.com
-SUPPORT_DIVERSION_HEADER=sip:401@your-pbx.com
+SUPPORT_P_Called_Party_ID_HEADER=sip:401@your-pbx.com
 ```
 
 ### Adding Custom Departments
 
 1. **Add Environment Variables**:
+
    ```env
    LEGAL_SIP_URI=sip:legal@your-domain.com
-   LEGAL_DIVERSION_HEADER=sip:legal@your-domain.com
+   LEGAL_P_Called_Party_ID_HEADER=sip:legal@your-domain.com
    ```
 
 2. **Update Configuration**:
@@ -145,8 +151,8 @@ SUPPORT_DIVERSION_HEADER=sip:401@your-pbx.com
            "sip_uri": os.getenv("LEGAL_SIP_URI", "sip:legal@your-domain.com"),
            "headers": [
                {
-                   "name": "Diversion",
-                   "value": os.getenv("LEGAL_DIVERSION_HEADER", "sip:legal@your-domain.com")
+                   "name": "P_Called_Party_ID",
+                   "value": os.getenv("LEGAL_P_Called_Party_ID_HEADER", "sip:legal@your-domain.com")
                }
            ]
        }
@@ -180,6 +186,7 @@ SUPPORT_DIVERSION_HEADER=sip:401@your-pbx.com
 ### 3. Configure Webhooks
 
 Ensure your webhook endpoint (`https://your-domain.com/webhook`) is:
+
 - Publicly accessible
 - Returns HTTP 200 responses
 - Can handle POST requests with JSON payloads
@@ -188,22 +195,23 @@ Ensure your webhook endpoint (`https://your-domain.com/webhook`) is:
 
 ### Environment Variables
 
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| `TELNYX_API_KEY` | ✅ | - | Your Telnyx API key |
-| `OPENAI_API_KEY` | ✅ | - | Your OpenAI API key |
-| `DOMAIN` | ✅ | - | Your public domain for webhooks |
-| `AGENT_VOICE` | ❌ | `marin` | OpenAI voice model |
-| `AGENT_INSTRUCTIONS` | ❌ | Default assistant | AI behavior instructions |
-| `AGENT_GREETING` | ❌ | Default greeting | Initial message to callers |
-| `{DEPT}_SIP_URI` | ❌ | Default SIP | Department SIP endpoint |
-| `{DEPT}_DIVERSION_HEADER` | ❌ | Default header | Department diversion header |
+| Variable                          | Required | Default           | Description                         |
+| --------------------------------- | -------- | ----------------- | ----------------------------------- |
+| `TELNYX_API_KEY`                  | ✅       | -                 | Your Telnyx API key                 |
+| `OPENAI_API_KEY`                  | ✅       | -                 | Your OpenAI API key                 |
+| `DOMAIN`                          | ✅       | -                 | Your public domain for webhooks     |
+| `AGENT_VOICE`                     | ❌       | `marin`           | OpenAI voice model                  |
+| `AGENT_INSTRUCTIONS`              | ❌       | Default assistant | AI behavior instructions            |
+| `AGENT_GREETING`                  | ❌       | Default greeting  | Initial message to callers          |
+| `{DEPT}_SIP_URI`                  | ❌       | Default SIP       | Department SIP endpoint             |
+| `{DEPT}_P_Called_Party_ID_HEADER` | ❌       | Default header    | Department P_Called_Party_ID header |
 
 ### Voice Options
 
 Available OpenAI voice models:
+
 - `alloy` - Balanced, neutral voice
-- `echo` - Clear, articulate voice  
+- `echo` - Clear, articulate voice
 - `fable` - Warm, engaging voice
 - `onyx` - Deep, authoritative voice
 - `nova` - Bright, energetic voice
@@ -213,25 +221,33 @@ Available OpenAI voice models:
 ## 📡 API Endpoints
 
 ### Health Check
+
 ```http
 GET /health
 ```
+
 Returns system status and current time.
 
 ### Telnyx Webhook
+
 ```http
 POST /webhook
 ```
+
 Handles Telnyx call events:
+
 - `call.initiated` - Answers calls and starts streaming
 - `call.hangup` - Cleans up call resources
 - Other call control events
 
 ### Media WebSocket
+
 ```http
 WebSocket /telnyx_media
 ```
+
 Manages real-time audio streaming:
+
 - Receives audio from Telnyx
 - Forwards to OpenAI Realtime API
 - Streams AI responses back to caller
@@ -240,6 +256,7 @@ Manages real-time audio streaming:
 ## 🎯 Call Flow Examples
 
 ### Basic Conversation
+
 ```
 👤 Caller: "Hi, how are you?"
 🤖 AI: "Hello! I'm doing great, thank you. How can I assist you today?"
@@ -248,6 +265,7 @@ Manages real-time audio streaming:
 ```
 
 ### Call Transfer
+
 ```
 👤 Caller: "I need to speak to billing"
 🤖 AI: "Of course! I'll transfer you to our billing department now. Please hold on just a moment while I connect you."
@@ -256,6 +274,7 @@ Manages real-time audio streaming:
 ```
 
 ### Call End
+
 ```
 👤 Caller: "Thank you, goodbye"
 🤖 AI: "Thank you so much for calling! Have a wonderful day!"
@@ -268,6 +287,7 @@ Manages real-time audio streaming:
 ### Local Development with ngrok
 
 1. **Install ngrok**
+
    ```bash
    npm install -g ngrok
    # or
@@ -275,16 +295,19 @@ Manages real-time audio streaming:
    ```
 
 2. **Start your application**
+
    ```bash
    uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
 
 3. **Expose with ngrok**
+
    ```bash
    ngrok http 8000
    ```
 
 4. **Update configuration**
+
    ```env
    DOMAIN=your-ngrok-url.ngrok.io
    ```
@@ -321,21 +344,25 @@ voice-ai-agents-openai-telnyx/
 ### Common Issues
 
 **1. Function tools not working**
+
 - Verify OpenAI API has Realtime access
 - Check function tool configuration in logs
 - Ensure departments are properly configured
 
 **2. Transfer failures**
+
 - Validate SIP URIs and headers
 - Check Telnyx call control permissions
 - Verify department configuration
 
 **3. Audio issues**
+
 - Confirm PCMU codec support
 - Check WebSocket connection stability
 - Monitor network latency
 
 **4. Webhook problems**
+
 - Verify public domain accessibility
 - Check Telnyx webhook configuration
 - Ensure proper HTTP response codes
@@ -343,11 +370,13 @@ voice-ai-agents-openai-telnyx/
 ### Debug Mode
 
 Enable detailed logging:
+
 ```python
 logging.basicConfig(level=logging.DEBUG)
 ```
 
 Monitor function calls:
+
 ```bash
 # Look for these log patterns
 INFO:app.main:Function call request: transfer_call
@@ -403,6 +432,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Support
 
 For support and questions:
+
 - Create an issue in this repository
 - Check the [Telnyx Community](https://developers.telnyx.com/community)
 - Review [OpenAI API Documentation](https://platform.openai.com/docs)

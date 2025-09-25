@@ -231,7 +231,7 @@ async def telnyx_media(ws: WebSocket):
                             if call_control_id and has_pending_operation(call_control_id):
                                 logger.info(f"Audio done for call {call_control_id} with pending operations")
                                 # Add a small delay to ensure the audio is fully transmitted
-                                await asyncio.sleep(1.5)
+                                await asyncio.sleep(2)
                                 await execute_pending_operation(call_control_id, TELNYX_API_KEY)
                                 # Exit the loop since call is ending
                                 break

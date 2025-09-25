@@ -67,8 +67,8 @@ DEPARTMENTS = {
         "sip_uri": os.getenv("SALES_SIP_URI", "sip:hamidstenantsip@sip.telnyx.com"),
         "headers": [
             {
-                "name": "Diversion",
-                "value": os.getenv("SALES_DIVERSION_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+                "name": "P-Called-Party-ID",
+                "value": os.getenv("SALES_P_Called_Party_ID_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
             }
         ]
     },
@@ -76,17 +76,17 @@ DEPARTMENTS = {
         "sip_uri": os.getenv("SUPPORT_SIP_URI", "sip:hamidstenantsip@sip.telnyx.com"),
         "headers": [
             {
-                "name": "Diversion", 
-                "value": os.getenv("SUPPORT_DIVERSION_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+                "name": "P-Called-Party-ID", 
+                "value": os.getenv("SUPPORT_P_Called_Party_ID_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
             }
         ]
     },
     "billing": {
-        "sip_uri": os.getenv("BILLING_SIP_URI", "sip:400@hamids-pbx.ca.unificx.com"),
+        "sip_uri": os.getenv("BILLING_SIP_URI", "sip:hamidstenantsip@sip.telnyx.com"),
         "headers": [
             {
-                "name": "Diversion",
-                "value": os.getenv("BILLING_DIVERSION_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+                "name": "P-Called-Party-ID",
+                "value": os.getenv("BILLING_P_Called_Party_ID_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
             }
         ]
     }

@@ -242,7 +242,7 @@ async def execute_pending_operation(call_control_id: str, telnyx_api_key: str):
             
             # Add SIP headers if configured
             if headers:
-                transfer_payload["sip_headers"] = headers
+                transfer_payload["custom_headers"] = headers
             
             # Execute the transfer
             response = await telnyx_cmd(call_control_id, "transfer", telnyx_api_key, transfer_payload)
