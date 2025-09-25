@@ -140,9 +140,14 @@ async def telnyx_media(ws: WebSocket):
                 "audio": {
                     "input": {
                         "format": {"type": "audio/pcmu"},
+                        "transcription": {
+                            "model": "whisper-1"
+                        },
                         "turn_detection": {
                             "type": "semantic_vad",
-                            "eagerness":"auto"
+                            "eagerness": "auto",
+                            "create_response": True,
+                            "interrupt_response": True
                         },
                     },
                     "output": {
@@ -219,6 +224,7 @@ async def telnyx_media(ws: WebSocket):
                         # Useful lifecycle events
                         elif etype == "input_audio_buffer.speech_started":
                             logger.info("Caller started speaking")
+                            await ws.send_json({"event": "clear", "stream_id": stream_id})
                         elif etype == "input_audio_buffer.speech_stopped":
                             logger.info("Caller stopped speaking")
                         elif etype == "response.created":
