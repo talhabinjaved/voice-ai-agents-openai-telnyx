@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
 from .utils.telnyx_http import telnyx_cmd
+from .utils.function_tools import get_function_tools, handle_function_call, execute_pending_operation, has_pending_operation
 
 load_dotenv()
 
@@ -24,8 +25,8 @@ from .agent_config import (
     OPENAI_API_KEY,
     PUBLIC_DOMAIN,
     AGENT_VOICE,
-    AGENT_INSTRUCTIONS,
     AGENT_GREETING,
+    get_formatted_instructions,
 )
 
 
@@ -131,32 +132,44 @@ async def telnyx_media(ws: WebSocket):
         logger.info("Connected to OpenAI Realtime API")
 
         # --- Correct Realtime session.update (includes session.type, nested audio, modalities) ---
-        session_update = {
-            "type": "session.update",
-            "session": {
-                "type": "realtime",
-                "model": "gpt-realtime",
-                "output_modalities": ["audio"],
-                "audio": {
-                    "input": {
-                        "format": {"type": "audio/pcmu"},
-                        "transcription": {
-                            "model": "whisper-1"
-                        },
-                        "turn_detection": {
-                            "type": "semantic_vad",
-                            "eagerness": "auto",
-                            "create_response": True,
-                            "interrupt_response": True
-                        },
+        session_config = {
+            "type": "realtime",
+            "model": "gpt-realtime",
+            "output_modalities": ["audio"],
+            "audio": {
+                "input": {
+                    "format": {"type": "audio/pcmu"},
+                    "transcription": {
+                        "model": "whisper-1"
                     },
-                    "output": {
-                        "format": {"type": "audio/pcmu"},
-                        "voice": AGENT_VOICE
+                    "turn_detection": {
+                        "type": "semantic_vad",
+                        "eagerness": "auto",
+                        "create_response": True,
+                        "interrupt_response": True
                     },
                 },
-                "instructions": AGENT_INSTRUCTIONS,
+                "output": {
+                    "format": {"type": "audio/pcmu"},
+                    "voice": AGENT_VOICE
+                },
             },
+            "instructions": get_formatted_instructions(),
+        }
+        
+        # Only include tools if there are any configured
+        function_tools = get_function_tools()
+        if function_tools and len(function_tools) > 0:
+            session_config["tools"] = function_tools
+            session_config["tool_choice"] = "auto"
+            tool_names = [tool["name"] for tool in function_tools]
+            logger.info(f"Including function tools: {', '.join(tool_names)}")
+        else:
+            logger.info("No function tools configured - session will not include tools")
+        
+        session_update = {
+            "type": "session.update",
+            "session": session_config
         }
 
         await openai_ws.send(json.dumps(session_update))
@@ -213,6 +226,15 @@ async def telnyx_media(ws: WebSocket):
                                     "mark": {"name": "audio_end"},
                                 }
                             )
+                            
+                            # Check for pending operations (hangup or transfer) after audio is done
+                            if call_control_id and has_pending_operation(call_control_id):
+                                logger.info(f"Audio done for call {call_control_id} with pending operations")
+                                # Add a small delay to ensure the audio is fully transmitted
+                                await asyncio.sleep(1.5)
+                                await execute_pending_operation(call_control_id, TELNYX_API_KEY)
+                                # Exit the loop since call is ending
+                                break
                         # Useful lifecycle events
                         elif etype == "input_audio_buffer.speech_started":
                             logger.info("Caller started speaking")
@@ -221,6 +243,57 @@ async def telnyx_media(ws: WebSocket):
                             logger.info("Caller stopped speaking")
                         elif etype == "response.created":
                             logger.info("AI response started")
+                        elif etype == "response.function_call_arguments.done":
+                            # Function call arguments are complete, execute the function
+                            func_call_id = event.get("call_id")
+                            func_name = event.get("name")
+                            func_arguments = event.get("arguments")
+                            
+                            logger.info(f"Function call request: {func_name} with args: {func_arguments}")
+                            
+                            try:
+                                # Parse function arguments
+                                if isinstance(func_arguments, str):
+                                    func_args = json.loads(func_arguments)
+                                else:
+                                    func_args = func_arguments
+                                
+                                # Execute the function
+                                result = await handle_function_call(
+                                    func_name, func_args, call_control_id, TELNYX_API_KEY
+                                )
+                                
+                                # Send function result back to OpenAI
+                                function_result = {
+                                    "type": "conversation.item.create",
+                                    "item": {
+                                        "type": "function_call_output",
+                                        "call_id": func_call_id,
+                                        "output": result
+                                    }
+                                }
+                                await openai_ws.send(json.dumps(function_result))
+                                
+                                # Always request a response to let AI speak the function result
+                                response_create = {
+                                    "type": "response.create"
+                                }
+                                await openai_ws.send(json.dumps(response_create))
+                                
+                                logger.info(f"Function call result sent: {result}")
+                                
+                            except Exception as func_error:
+                                logger.error(f"Error executing function {func_name}: {func_error}")
+                                # Send error result back to OpenAI
+                                error_result = {
+                                    "type": "conversation.item.create", 
+                                    "item": {
+                                        "type": "function_call_output",
+                                        "call_id": func_call_id,
+                                        "output": "Sorry, there was an error processing your request."
+                                    }
+                                }
+                                await openai_ws.send(json.dumps(error_result))
                         elif etype == "response.done":
                             # Extract useful information from response.done event
                             response_data = event.get("response", {})
@@ -238,6 +311,8 @@ async def telnyx_media(ws: WebSocket):
                             
                             # Log essential information
                             logger.info(f"AI Response - Conv: {conversation_id}, Transcript: '{transcript}'")
+                            
+                            # Note: Pending operations are handled in response.output_audio.done for better timing
                         elif etype == "error":
                             logger.error(f"OpenAI error: {event}")
 

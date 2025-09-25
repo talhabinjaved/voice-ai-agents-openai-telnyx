@@ -53,11 +53,59 @@ Variety:
 
 Escalation:
 - Safety issues, explicit human request, strong dissatisfaction, complex specs/quotes → escalate:
-“I’d be happy to connect you with one of our specialists who can provide more detailed assistance. Let me transfer you now.”
+"I'd be happy to connect you with one of our specialists who can provide more detailed assistance. Let me transfer you now."
+
+Call Management:
+- When a caller wants to end the conversation or you've addressed their needs completely, use the end_call function with an appropriate reason.{transfer_instructions}
+- Always provide a brief explanation before transferring or ending the call to ensure the caller understands what's happening.
 """
 )
 
+# Department configuration for call transfers
+DEPARTMENTS = {
+    "sales": {
+        "sip_uri": os.getenv("SALES_SIP_URI", "sip:hamidstenantsip@sip.telnyx.com"),
+        "headers": [
+            {
+                "name": "Diversion",
+                "value": os.getenv("SALES_DIVERSION_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+            }
+        ]
+    },
+    "support": {
+        "sip_uri": os.getenv("SUPPORT_SIP_URI", "sip:hamidstenantsip@sip.telnyx.com"),
+        "headers": [
+            {
+                "name": "Diversion", 
+                "value": os.getenv("SUPPORT_DIVERSION_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+            }
+        ]
+    },
+    "billing": {
+        "sip_uri": os.getenv("BILLING_SIP_URI", "sip:400@hamids-pbx.ca.unificx.com"),
+        "headers": [
+            {
+                "name": "Diversion",
+                "value": os.getenv("BILLING_DIVERSION_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+            }
+        ]
+    }
+}
+
+def get_formatted_instructions():
+    """
+    Get agent instructions with dynamically populated department list
+    Only includes transfer instructions if departments are configured
+    """
+    if DEPARTMENTS and len(DEPARTMENTS) > 0:
+        available_departments = ", ".join(DEPARTMENTS.keys())
+        transfer_instructions = f"\n- When a caller needs specialized assistance, use the transfer_call function to connect them to the right department.\n- Available departments for transfer: {available_departments} IMPORTANT: Never call both transfer_call and end_call in the same conversation. Choose one action only."
+    else:
+        transfer_instructions = ""
+    
+    return AGENT_INSTRUCTIONS.format(transfer_instructions=transfer_instructions)
+
 AGENT_GREETING = os.getenv(
     "AGENT_GREETING",
-    "Hi! You’ve reached Origen. I’m your virtual assistant—how can I help today?"
+    "Hi! You've reached Origen. I'm your virtual assistant—how can I help today?"
 )
