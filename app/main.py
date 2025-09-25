@@ -152,7 +152,7 @@ async def telnyx_media(ws: WebSocket):
                     },
                     "output": {
                         "format": {"type": "audio/pcmu"},
-                        "voice": AGENT_VOICE,
+                        "voice": AGENT_VOICE
                     },
                 },
                 "instructions": AGENT_INSTRUCTIONS,
@@ -188,7 +188,13 @@ async def telnyx_media(ws: WebSocket):
                         etype = event.get("type", "")
 
                         # Canonical audio events from Realtime (audio chunks and completion)
-                        if etype == "response.output_audio.delta":
+                        
+                        # --- USER transcript ---
+                        if etype == "conversation.item.input_audio_transcription.completed":
+                            transcript = event.get("transcript", "")
+                            if transcript:
+                                logger.info(f"[User transcript] {transcript}")            
+                        elif etype == "response.output_audio.delta":
                             audio_b64 = event.get("delta", "")
                             if audio_b64:
                                 await ws.send_json(
@@ -198,7 +204,6 @@ async def telnyx_media(ws: WebSocket):
                                         "media": {"payload": audio_b64},
                                     }
                                 )
-
                         elif etype == "response.output_audio.done":
                             # Optional marker to help you correlate ends on Telnyx side
                             await ws.send_json(
@@ -208,19 +213,6 @@ async def telnyx_media(ws: WebSocket):
                                     "mark": {"name": "audio_end"},
                                 }
                             )
-
-                        # Text deltas can be handy for logs/analytics
-                        elif etype == "response.output_text.delta":
-                            txt = event.get("delta", "")
-                            if txt:
-                                logger.info(f"[Model text] {txt}")
-
-                        # Transcripts of model output; optional to log
-                        elif etype == "response.output_audio_transcript.delta":
-                            t = event.get("delta", "")
-                            if t:
-                                logger.info(f"[AI transcript] {t}")
-
                         # Useful lifecycle events
                         elif etype == "input_audio_buffer.speech_started":
                             logger.info("Caller started speaking")
@@ -230,7 +222,22 @@ async def telnyx_media(ws: WebSocket):
                         elif etype == "response.created":
                             logger.info("AI response started")
                         elif etype == "response.done":
-                            logger.info("AI response completed")
+                            # Extract useful information from response.done event
+                            response_data = event.get("response", {})
+                            conversation_id = response_data.get("conversation_id", "unknown")                            
+                            # Extract transcript from output
+                            transcript = ""
+                            output_items = response_data.get("output", [])
+                            for item in output_items:
+                                if item.get("type") == "message" and item.get("role") == "assistant":
+                                    content = item.get("content", [])
+                                    for content_item in content:
+                                        if content_item.get("type") == "output_audio":
+                                            transcript = content_item.get("transcript", "")
+                                            break
+                            
+                            # Log essential information
+                            logger.info(f"AI Response - Conv: {conversation_id}, Transcript: '{transcript}'")
                         elif etype == "error":
                             logger.error(f"OpenAI error: {event}")
 
