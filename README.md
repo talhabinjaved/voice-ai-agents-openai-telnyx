@@ -1,11 +1,13 @@
-# Voice AI Agents with OpenAI & Telnyx
+# Voice AI Agents with OpenAI Realtime API & Telnyx
 
-A real-time voice AI assistant system that integrates OpenAI's Realtime API with Telnyx's telephony services to create intelligent voice agents capable of natural conversations over phone calls.
+A sophisticated real-time voice AI assistant system that integrates OpenAI's Realtime API with Telnyx's telephony services to create intelligent voice agents capable of natural conversations, call transfers, and call management over phone calls.
 
 ## 🎯 Features
 
 - **Real-time Voice Conversations**: Seamless voice interactions using OpenAI's Realtime API
 - **Phone Integration**: Handle inbound/outbound calls through Telnyx telephony services
+- **Function Tools**: Smart call management with transfer and end call capabilities
+- **Dynamic Department Configuration**: Configurable call routing to different departments
 - **Bidirectional Audio Streaming**: Real-time audio processing with PCMU codec support
 - **Configurable AI Personality**: Customizable agent voice, instructions, and greeting messages
 - **WebSocket Architecture**: Efficient real-time communication between Telnyx and OpenAI
@@ -13,16 +15,19 @@ A real-time voice AI assistant system that integrates OpenAI's Realtime API with
 
 ## 🏗️ Architecture
 
-The system consists of three main components:
+The system consists of three main components working together with function tools:
 
-1. **FastAPI Server** - Handles webhooks and WebSocket connections
-2. **Telnyx Integration** - Manages phone calls and media streaming
-3. **OpenAI Realtime API** - Provides AI-powered voice responses
+1. **FastAPI Server** - Handles webhooks, WebSocket connections, and function execution
+2. **Telnyx Integration** - Manages phone calls, media streaming, and call transfers
+3. **OpenAI Realtime API** - Provides AI-powered voice responses with function calling
 
 ```
 Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
-                                     ↓
-                                 Voice Response
+                                     ↓            ↓
+                              Function Tools  Voice Response
+                              (Transfer/End)      ↓
+                                     ↓        Audio Stream
+                                Call Actions ← WebSocket
 ```
 
 ## 🚀 Quick Start
@@ -31,7 +36,7 @@ Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
 
 - Python 3.8+
 - Telnyx account with API access
-- OpenAI account with API access
+- OpenAI account with Realtime API access
 - Public domain/ngrok for webhook endpoints
 
 ### Installation
@@ -58,8 +63,24 @@ Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
    
    # Optional Voice & AI Configuration
    AGENT_VOICE=marin  # Options: alloy, echo, fable, onyx, nova, shimmer, marin
-   AGENT_INSTRUCTIONS=You are a helpful voice assistant. Greet warmly, then help succinctly. Keep responses concise but informative. Be friendly and professional.
-   AGENT_GREETING=Hi! Thanks for calling. How can I help you today?
+   AGENT_INSTRUCTIONS=You are a helpful voice assistant for Origen. Be friendly and professional.
+   AGENT_GREETING=Hi! You've reached Origen. I'm your virtual assistant—how can I help today?
+   
+   # Department Transfer Configuration (Optional)
+   SALES_SIP_URI=sip:sales@your-domain.com
+   SALES_DIVERSION_HEADER=sip:sales@your-domain.com
+   
+   SUPPORT_SIP_URI=sip:support@your-domain.com
+   SUPPORT_DIVERSION_HEADER=sip:support@your-domain.com
+   
+   BILLING_SIP_URI=sip:billing@your-domain.com
+   BILLING_DIVERSION_HEADER=sip:billing@your-domain.com
+   
+   TECHNICAL_SIP_URI=sip:tech@your-domain.com
+   TECHNICAL_DIVERSION_HEADER=sip:tech@your-domain.com
+   
+   MANAGEMENT_SIP_URI=sip:manager@your-domain.com
+   MANAGEMENT_DIVERSION_HEADER=sip:manager@your-domain.com
    ```
 
 4. **Run the application**
@@ -67,7 +88,72 @@ Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
    uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
 
-## ⚙️ Telnyx Setup
+## 🛠️ Function Tools
+
+The system includes intelligent function tools that enable the AI to manage calls effectively:
+
+### 1. End Call (`end_call`)
+- **Purpose**: Terminates the current phone call gracefully
+- **Triggers**: When caller says goodbye, conversation is complete, or escalation needed
+- **Parameters**: 
+  - `reason`: Why the call is ending (`conversation_complete`, `caller_request`, `escalation_needed`)
+- **Example**: "Thank you for calling! Have a wonderful day!" → *Call ends*
+
+### 2. Transfer Call (`transfer_call`)
+- **Purpose**: Routes calls to appropriate departments
+- **Triggers**: When caller needs specialized assistance
+- **Parameters**:
+  - `department`: Target department (dynamically configured)
+  - `reason`: Explanation for the transfer
+- **Example**: "I'll transfer you to our billing department now" → *Call transfers*
+
+### Conditional Function Loading
+
+- **No Departments Configured**: Only `end_call` function available
+- **Departments Configured**: Both `end_call` and `transfer_call` functions available
+- **Dynamic Instructions**: AI instructions automatically adjust based on available functions
+
+## ⚙️ Department Configuration
+
+### Environment Variables
+
+Configure each department with SIP URI and custom headers:
+
+```env
+# Department Format: {DEPARTMENT}_SIP_URI and {DEPARTMENT}_DIVERSION_HEADER
+SALES_SIP_URI=sip:sales@your-pbx.com
+SALES_DIVERSION_HEADER=sip:400@your-pbx.com
+
+SUPPORT_SIP_URI=sip:support@your-pbx.com
+SUPPORT_DIVERSION_HEADER=sip:401@your-pbx.com
+```
+
+### Adding Custom Departments
+
+1. **Add Environment Variables**:
+   ```env
+   LEGAL_SIP_URI=sip:legal@your-domain.com
+   LEGAL_DIVERSION_HEADER=sip:legal@your-domain.com
+   ```
+
+2. **Update Configuration**:
+   Edit `app/agent_config.py` to include the new department:
+   ```python
+   DEPARTMENTS = {
+       # ... existing departments ...
+       "legal": {
+           "sip_uri": os.getenv("LEGAL_SIP_URI", "sip:legal@your-domain.com"),
+           "headers": [
+               {
+                   "name": "Diversion",
+                   "value": os.getenv("LEGAL_DIVERSION_HEADER", "sip:legal@your-domain.com")
+               }
+           ]
+       }
+   }
+   ```
+
+## 🔧 Telnyx Setup
 
 ### 1. Create a Call Control Application
 
@@ -98,7 +184,7 @@ Ensure your webhook endpoint (`https://your-domain.com/webhook`) is:
 - Returns HTTP 200 responses
 - Can handle POST requests with JSON payloads
 
-## 🔧 Configuration Options
+## 📋 Configuration Reference
 
 ### Environment Variables
 
@@ -108,8 +194,10 @@ Ensure your webhook endpoint (`https://your-domain.com/webhook`) is:
 | `OPENAI_API_KEY` | ✅ | - | Your OpenAI API key |
 | `DOMAIN` | ✅ | - | Your public domain for webhooks |
 | `AGENT_VOICE` | ❌ | `marin` | OpenAI voice model |
-| `AGENT_INSTRUCTIONS` | ❌ | Default helpful assistant | AI behavior instructions |
+| `AGENT_INSTRUCTIONS` | ❌ | Default assistant | AI behavior instructions |
 | `AGENT_GREETING` | ❌ | Default greeting | Initial message to callers |
+| `{DEPT}_SIP_URI` | ❌ | Default SIP | Department SIP endpoint |
+| `{DEPT}_DIVERSION_HEADER` | ❌ | Default header | Department diversion header |
 
 ### Voice Options
 
@@ -125,28 +213,61 @@ Available OpenAI voice models:
 ## 📡 API Endpoints
 
 ### Health Check
-```
+```http
 GET /health
 ```
 Returns system status and current time.
 
 ### Telnyx Webhook
-```
+```http
 POST /webhook
 ```
-Handles Telnyx call events (call.initiated, call.hangup, etc.)
+Handles Telnyx call events:
+- `call.initiated` - Answers calls and starts streaming
+- `call.hangup` - Cleans up call resources
+- Other call control events
 
 ### Media WebSocket
+```http
+WebSocket /telnyx_media
 ```
-WS /telnyx_media
+Manages real-time audio streaming:
+- Receives audio from Telnyx
+- Forwards to OpenAI Realtime API
+- Streams AI responses back to caller
+- Handles function call execution
+
+## 🎯 Call Flow Examples
+
+### Basic Conversation
 ```
-Manages real-time audio streaming between Telnyx and OpenAI.
+👤 Caller: "Hi, how are you?"
+🤖 AI: "Hello! I'm doing great, thank you. How can I assist you today?"
+👤 Caller: "I need help with my account"
+🤖 AI: "I'd be happy to help. Could you tell me more about the issue?"
+```
+
+### Call Transfer
+```
+👤 Caller: "I need to speak to billing"
+🤖 AI: "Of course! I'll transfer you to our billing department now. Please hold on just a moment while I connect you."
+🔄 System: Executes transfer_call function
+📞 Result: Call routes to billing department
+```
+
+### Call End
+```
+👤 Caller: "Thank you, goodbye"
+🤖 AI: "Thank you so much for calling! Have a wonderful day!"
+🔄 System: Executes end_call function
+📞 Result: Call terminates gracefully
+```
 
 ## 🧪 Testing
 
 ### Local Development with ngrok
 
-1. **Install ngrok** (if not already installed)
+1. **Install ngrok**
    ```bash
    npm install -g ngrok
    # or
@@ -163,20 +284,19 @@ Manages real-time audio streaming between Telnyx and OpenAI.
    ngrok http 8000
    ```
 
-4. **Update your .env file**
+4. **Update configuration**
    ```env
    DOMAIN=your-ngrok-url.ngrok.io
    ```
 
 5. **Update Telnyx webhook URL** to `https://your-ngrok-url.ngrok.io/webhook`
 
-### Test Call Flow
+### Test Scenarios
 
-1. Call your Telnyx phone number
-2. The system should automatically answer
-3. You'll hear the configured greeting
-4. Start speaking - the AI will respond in real-time
-5. Check logs for detailed event tracking
+1. **Basic Call**: Call your number and have a conversation
+2. **Transfer Test**: Ask to be transferred to different departments
+3. **End Call Test**: Say goodbye and verify call ends properly
+4. **Function Logs**: Monitor logs for function call execution
 
 ## 📁 Project Structure
 
@@ -184,40 +304,81 @@ Manages real-time audio streaming between Telnyx and OpenAI.
 voice-ai-agents-openai-telnyx/
 ├── app/
 │   ├── __init__.py
-│   ├── main.py              # FastAPI application and WebSocket handlers
+│   ├── main.py                 # FastAPI app & WebSocket handlers
+│   ├── agent_config.py         # AI configuration & departments
 │   └── utils/
 │       ├── __init__.py
-│       └── telnyx_http.py   # Telnyx API communication utilities
-├── requirements.txt         # Python dependencies
-├── .env                    # Environment configuration (not tracked)
-├── .gitignore             # Git ignore patterns
-└── README.md              # This file
+│       ├── telnyx_http.py      # Telnyx API utilities
+│       └── function_tools.py   # Function calling logic
+├── requirements.txt            # Python dependencies
+├── .env                       # Environment configuration
+├── .gitignore                # Git ignore patterns
+└── README.md                 # This documentation
 ```
 
 ## 🔍 Troubleshooting
 
 ### Common Issues
 
-**1. Webhook not receiving events**
-- Verify your domain is publicly accessible
-- Check Telnyx application webhook URL configuration
-- Ensure endpoint returns HTTP 200
+**1. Function tools not working**
+- Verify OpenAI API has Realtime access
+- Check function tool configuration in logs
+- Ensure departments are properly configured
 
-**2. Audio quality issues**
-- Verify PCMU codec configuration
-- Check network connectivity and latency
-- Monitor WebSocket connection stability
+**2. Transfer failures**
+- Validate SIP URIs and headers
+- Check Telnyx call control permissions
+- Verify department configuration
 
-**3. OpenAI connection errors**
-- Validate API key permissions
-- Check rate limits and quotas
-- Monitor WebSocket connection logs
+**3. Audio issues**
+- Confirm PCMU codec support
+- Check WebSocket connection stability
+- Monitor network latency
+
+**4. Webhook problems**
+- Verify public domain accessibility
+- Check Telnyx webhook configuration
+- Ensure proper HTTP response codes
 
 ### Debug Mode
 
-Enable detailed logging by setting log level to DEBUG:
+Enable detailed logging:
 ```python
 logging.basicConfig(level=logging.DEBUG)
+```
+
+Monitor function calls:
+```bash
+# Look for these log patterns
+INFO:app.main:Function call request: transfer_call
+INFO:app.utils.function_tools:Executing transfer for call
+INFO:app.main:Terminal function transfer_call completed
+```
+
+## 🚀 Production Deployment
+
+### Recommended Setup
+
+1. **Use a reliable hosting platform** (AWS, GCP, Azure, Railway, Fly.io)
+2. **Configure proper SSL/TLS** for webhook security
+3. **Set up monitoring and logging** for call analytics
+4. **Implement rate limiting** for API protection
+5. **Use environment-specific configurations**
+
+### Environment Variables for Production
+
+```env
+# Production settings
+TELNYX_API_KEY=prod_key_here
+OPENAI_API_KEY=prod_key_here
+DOMAIN=your-production-domain.com
+
+# Monitoring
+LOG_LEVEL=INFO
+SENTRY_DSN=your_sentry_dsn  # Optional
+
+# Rate limiting
+MAX_CONCURRENT_CALLS=50
 ```
 
 ## 🤝 Contributing
@@ -236,6 +397,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [Telnyx Call Control API Documentation](https://developers.telnyx.com/docs/api/v2/call-control)
 - [OpenAI Realtime API Documentation](https://platform.openai.com/docs/guides/realtime)
+- [OpenAI Function Calling Guide](https://platform.openai.com/docs/guides/function-calling)
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 
 ## 📞 Support
@@ -247,4 +409,6 @@ For support and questions:
 
 ---
 
-**Tags**: `voice-ai`, `openai`, `telnyx`, `telephony`, `real-time`, `websocket`, `fastapi`, `python`, `ai-assistant`, `speech-to-text`, `text-to-speech`
+**Built with ❤️ using OpenAI Realtime API & Telnyx**
+
+**Tags**: `voice-ai`, `openai-realtime`, `telnyx`, `telephony`, `function-calling`, `call-transfer`, `websocket`, `fastapi`, `python`, `ai-assistant`, `real-time-audio`
