@@ -86,6 +86,34 @@ async def telnyx_webhook(request: Request):
     elif ev_type == "call.hangup":
         logger.info(f"Call {call_control_id} ended")
 
+    elif ev_type == "call.cost":
+        # Extract cost information from the webhook payload
+        total_cost = payload.get("total_cost", "0.0000")
+        billed_duration = payload.get("billed_duration_secs", 0)
+        cost_parts = payload.get("cost_parts", [])
+        status = payload.get("status", "unknown")
+        
+        # Format duration for display
+        duration_minutes = billed_duration // 60
+        duration_seconds = billed_duration % 60
+        duration_str = f"{duration_minutes}m {duration_seconds}s" if duration_minutes > 0 else f"{duration_seconds}s"
+        
+        # Log the main cost information
+        logger.info(f"Call Cost Event - Call Control ID: {call_control_id}, Duration: {duration_str}, Total Cost: ${total_cost} USD, Status: {status}")
+        
+        # Log detailed cost breakdown if available
+        if cost_parts:
+            logger.info("Cost Breakdown:")
+            for part in cost_parts:
+                call_part = part.get("call_part", "unknown")
+                cost = part.get("cost", "0.0000")
+                rate = part.get("rate", "0.00000")
+                part_duration = part.get("billed_duration_secs", 0)
+                currency = part.get("currency", "USD")
+                logger.info(f"  - {call_part}: {part_duration}s @ ${rate}/{currency} = ${cost}")
+        else:
+            logger.info("No detailed cost breakdown available")
+
     return JSONResponse({"status": "ok"})
 
 # -----------------------------
