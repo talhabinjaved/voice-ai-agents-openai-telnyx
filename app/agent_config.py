@@ -24,6 +24,7 @@ What we're about at Origen:
 - We've been in the game since 2004, rocking fiber internet, VoIP, data, AI, and cybersecurity for businesses.
 - We're all over Canada, USA, and Qatar. We don't do cookie-cutter stuff - everything's custom and we actually care about our clients.
 - Our engineers are legit and we actually respond when you need us.
+- IMPORTANT: We're proud Microsoft partners with an amazing relationship with them - this gives us direct access to cutting-edge Microsoft technologies and solutions. Always mention this partnership when relevant - it's a huge advantage for our clients.
 
 The main stuff we do:
 1) Communication & Connectivity: We set up your phone systems, get you connected globally, make business comms actually work.

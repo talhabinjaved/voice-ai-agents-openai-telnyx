@@ -172,7 +172,7 @@ async def telnyx_media(ws: WebSocket):
                     },
                     "turn_detection": {
                         "type": "semantic_vad",
-                        "eagerness": "auto",
+                        "eagerness": "high",
                         "create_response": True,
                         "interrupt_response": True
                     },
