@@ -64,29 +64,29 @@ Call Management:
 # Department configuration for call transfers
 DEPARTMENTS = {
     "sales": {
-        "sip_uri": os.getenv("SALES_SIP_URI", "sip:hamidstenantsip@sip.telnyx.com"),
+        "sip_uri": os.getenv("SALES_SIP_URI", ""),
         "headers": [
             {
                 "name": "P-Called-Party-ID",
-                "value": os.getenv("SALES_P_Called_Party_ID_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+                "value": os.getenv("SALES_P_Called_Party_ID_HEADER", "")
             }
         ]
     },
     "support": {
-        "sip_uri": os.getenv("SUPPORT_SIP_URI", "sip:hamidstenantsip@sip.telnyx.com"),
+        "sip_uri": os.getenv("SUPPORT_SIP_URI", ""),
         "headers": [
             {
                 "name": "P-Called-Party-ID", 
-                "value": os.getenv("SUPPORT_P_Called_Party_ID_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+                "value": os.getenv("SUPPORT_P_Called_Party_ID_HEADER", "")
             }
         ]
     },
     "billing": {
-        "sip_uri": os.getenv("BILLING_SIP_URI", "sip:hamidstenantsip@sip.telnyx.com"),
+        "sip_uri": os.getenv("BILLING_SIP_URI", ""),
         "headers": [
             {
                 "name": "P-Called-Party-ID",
-                "value": os.getenv("BILLING_P_Called_Party_ID_HEADER", "sip:400@hamids-pbx.ca.unificx.com")
+                "value": os.getenv("BILLING_P_Called_Party_ID_HEADER", "")
             }
         ]
     }
