@@ -47,7 +47,7 @@ app.add_middleware(
 # -----------------------------
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "ok", "time": datetime.now(timezone.utc).isoformat()}
+    return {"status": "ok"}
 
 # -----------------------------
 # Telnyx webhook
