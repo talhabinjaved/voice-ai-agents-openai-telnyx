@@ -21,7 +21,7 @@ The system consists of three main components working together with function tool
 2. **Telnyx Integration** - Manages phone calls, media streaming, and call transfers
 3. **OpenAI Realtime API** - Provides AI-powered voice responses with function calling
 
-```
+```text
 Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
                                      ↓            ↓
                               Function Tools  Voice Response
@@ -34,7 +34,7 @@ Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
 
 ### Prerequisites
 
-- Python 3.8+
+- Python 3.12
 - Telnyx account with API access
 - OpenAI account with Realtime API access
 - Public domain/ngrok for webhook endpoints
@@ -66,8 +66,8 @@ Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
 
    # Optional Voice & AI Configuration
    AGENT_VOICE=marin  # Options: alloy, echo, fable, onyx, nova, shimmer, marin
-   AGENT_INSTRUCTIONS=You are a helpful voice assistant for Origen. Be friendly and professional.
-   AGENT_GREETING=Hi! You've reached Origen. I'm your virtual assistant—how can I help today?
+   AGENT_INSTRUCTIONS=You are a helpful voice assistant for our company. Be friendly and professional.
+   AGENT_GREETING=Hello! Thank you for calling. I'm your AI assistant and I'm here to help you today. How can I assist you?
 
    # Department Transfer Configuration (Optional)
    SALES_SIP_URI=sip:sales@your-domain.com
@@ -87,6 +87,7 @@ Phone Call → Telnyx → WebSocket → FastAPI → OpenAI Realtime API
    ```
 
 4. **Run the application**
+
    ```bash
    uvicorn app.main:app --host 0.0.0.0 --port 8000
    ```
@@ -120,7 +121,7 @@ The system includes intelligent function tools that enable the AI to manage call
 
 ## ⚙️ Department Configuration
 
-### Environment Variables
+### Department Environment Variables
 
 Configure each department with SIP URI and custom headers:
 
@@ -144,6 +145,7 @@ SUPPORT_P_Called_Party_ID_HEADER=sip:401@your-pbx.com
 
 2. **Update Configuration**:
    Edit `app/agent_config.py` to include the new department:
+
    ```python
    DEPARTMENTS = {
        # ... existing departments ...
@@ -257,7 +259,7 @@ Manages real-time audio streaming:
 
 ### Basic Conversation
 
-```
+```text
 👤 Caller: "Hi, how are you?"
 🤖 AI: "Hello! I'm doing great, thank you. How can I assist you today?"
 👤 Caller: "I need help with my account"
@@ -266,7 +268,7 @@ Manages real-time audio streaming:
 
 ### Call Transfer
 
-```
+```text
 👤 Caller: "I need to speak to billing"
 🤖 AI: "Of course! I'll transfer you to our billing department now. Please hold on just a moment while I connect you."
 🔄 System: Executes transfer_call function
@@ -275,7 +277,7 @@ Manages real-time audio streaming:
 
 ### Call End
 
-```
+```text
 👤 Caller: "Thank you, goodbye"
 🤖 AI: "Thank you so much for calling! Have a wonderful day!"
 🔄 System: Executes end_call function
@@ -323,7 +325,7 @@ Manages real-time audio streaming:
 
 ## 📁 Project Structure
 
-```
+```text
 voice-ai-agents-openai-telnyx/
 ├── app/
 │   ├── __init__.py
@@ -343,25 +345,25 @@ voice-ai-agents-openai-telnyx/
 
 ### Common Issues
 
-**1. Function tools not working**
+### 1. Function tools not working
 
 - Verify OpenAI API has Realtime access
 - Check function tool configuration in logs
 - Ensure departments are properly configured
 
-**2. Transfer failures**
+### 2. Transfer failures
 
 - Validate SIP URIs and headers
 - Check Telnyx call control permissions
 - Verify department configuration
 
-**3. Audio issues**
+### 3. Audio issues
 
 - Confirm PCMU codec support
 - Check WebSocket connection stability
 - Monitor network latency
 
-**4. Webhook problems**
+### 4. Webhook problems
 
 - Verify public domain accessibility
 - Check Telnyx webhook configuration
@@ -439,6 +441,6 @@ For support and questions:
 
 ---
 
-**Built with ❤️ using OpenAI Realtime API & Telnyx**
+## Built with ❤️ using OpenAI Realtime API & Telnyx
 
 **Tags**: `voice-ai`, `openai-realtime`, `telnyx`, `telephony`, `function-calling`, `call-transfer`, `websocket`, `fastapi`, `python`, `ai-assistant`, `real-time-audio`

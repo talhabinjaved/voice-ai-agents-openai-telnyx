@@ -1,5 +1,5 @@
 # Fly.io configuration for Voice AI Agents
-app = "voice-ai-agents-openai-telnyx"
+app = "your-voice-ai-agent"
 primary_region = "iad"
 
 # Runtime configuration
